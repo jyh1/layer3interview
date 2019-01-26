@@ -1,6 +1,7 @@
 import Data.Word
 import Text.Read
 import Data.Maybe
+import Data.Tuple
 
 data IPv4 = IPv4 Word8 Word8 Word8 Word8
     deriving (Show)
@@ -18,14 +19,14 @@ safeWord8 str =
         Just n -> if n > maxWord8 then Nothing else Just (fromIntegral n)
         Nothing -> Nothing
 
-consumeWord8 :: String -> [(Word8, String)]
+consumeWord8 :: String -> [(String, Word8)]
 consumeWord8 "" = []
-consumeWord8 ('0':res) = [(0, res)]
+consumeWord8 ('0':res) = [(res, 0)]
 consumeWord8 str = 
     let
-        splits = map (\n -> splitAt n str) [1..length str]
-        readWord8 (pre, suff) = (\n -> [(n, suff)]) <$> safeWord8 pre
-        possibleReads = mconcat (map readWord8 splits)
+        splits = map (swap . flip splitAt str) [1..length str]
+        readWord8 sp = sequence (safeWord8 <$> sp)
+        possibleReads = sequence (takeWhile isJust (map readWord8 splits))
     in
         fromMaybe [] possibleReads
 
@@ -36,7 +37,7 @@ possibleWord8s 0 str
     | null str = return []
     | otherwise = mempty
 possibleWord8s n str = do
-    (i, rest) <- consumeWord8 str
+    (rest, i) <- consumeWord8 str
     restWs <- (possibleWord8s (n - 1) rest)
     return (i : restWs)
 
